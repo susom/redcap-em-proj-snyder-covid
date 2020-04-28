@@ -136,6 +136,12 @@
 			"name": "<b>Original Project Signature Event</b><br>Enter the event id of theo original project's signature event ",
 			"required": false,
 			"type": "text"
+		},
+		{
+			"key": "trigger-rsp-save",
+			"name": "<b>Trigger the RSP Participant Info page</b><br>Click checkbox to trigger the rsp_participant_info page (sets hash and sends portal invite) ",
+			"required": false,
+			"type": "checkbox"
 		}
 
 	],
