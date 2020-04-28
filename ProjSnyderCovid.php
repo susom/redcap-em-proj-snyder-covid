@@ -141,6 +141,15 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                     unset($v['daily_checkin_email_complete']);
                 }
 
+                //data cleaning
+                //these fields have codes that are no longer valid
+                if ($v['extreme_hr']=='2') {
+                    unset($v['extreme_hr']);
+                }
+                if ($v['weight_loss']=='2') {
+                    unset($v['weight_loss']);
+                }
+
             }
             unset($v['consent_form_2_complete']);
             $v['redcap_event_name'] = $new_event;
