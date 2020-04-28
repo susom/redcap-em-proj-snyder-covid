@@ -181,6 +181,18 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 echo $msg;
             }
 
+            //if checkbox is set to trigger save of the rsp_participant_info
+            if ($this->getProjectSetting('trigger-rsp-save')) {
+                //todo: i'm just hardcoding the rsp_participant_info form here
+                $rsp_form = 'rsp_participant_info';
+                $repeat_instance = 1;
+
+                //trigger the hash creation and sending of the email by triggering the redcap_save_record hook on  the rsp_participant_info form
+                \Hooks::call('redcap_save_record', array($this->getProjectId(), $rec_id, $rsp_form,
+                    $this->getProjectSetting('main-event'), null, null, null, $repeat_instance));
+            }
+
+
             if (substr( $incoming_event, 0, 6 ) === "enroll") {
                 //need to copy over the signature field
                 //just hardcoding the signature fields.
