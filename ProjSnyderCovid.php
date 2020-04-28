@@ -113,6 +113,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
 
                 $v['consent_complete'] = $v['consent_form_2_complete'];
 
+
             }
 
             if (substr( $incoming_event, 0, 4 ) === "day_") {
@@ -157,10 +158,84 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 echo $msg;
             }
 
+            if (substr( $incoming_event, 0, 6 ) === "enroll") {
+                //need to copy over the signature field
+                //just hardcoding the signature fields.
+                $file_fields = array('signature_v2', 'signature_2', 'signature');
+                //TODO: Ask andy about signature files
+                //$sig_status = $this->copyOverSigFields($origin_pid, $this->getProjectId(), $rec_id, $file_fields, $this->getProjectSetting('orig-sig-event'));
+            }
+
 
         }
 
 
+    }
+
+    /**
+     * Copy over the signature field from the passed in event
+     *
+     * @param $project_id
+     * @param $record
+     * @param $file_fields
+     * @param $event_id
+     * @return bool|\mysqli_result
+     */
+    public function copyOverSigFields($from_project_id, $to_project_id, $record, $file_fields, $from_event_id) {
+        $final_event = $this->getProjectSetting('main-event');
+
+        $sig_status = true;
+
+        # Get doc_ids data for file fields
+        $docs = array();
+
+        $params = array(
+            'project_id' => $from_project_id,
+            'return_format'=>'array',
+            'fields'=>$file_fields,
+            'records'=>array($record),
+            'events'=>$from_event_id);
+        $file_data = REDCap::getData($params);
+
+        $sig_fields = $file_data[$record][$from_event_id];
+
+        $values = array();
+        foreach ($sig_fields as $field_name => $doc_id) {
+
+            if (!empty($doc_id)) {
+
+                //check if already exists;
+                $check_sql = sprintf("select count(*) from redcap_data where project_id = '%s' and " .
+                                     "event_id = '%s' and record = '%s' and field_name = '%s'",
+                                     prep($from_project_id),
+                                     prep($final_event),
+                                     prep($record),
+                                     prep($field_name));
+
+                //$this->emDebug("SQL is " . $check_sql);
+                $q = db_result(db_query($check_sql),0);
+                //$this->emDebug("SQL result is " . $q);
+
+                //INSERT ignore INTO redcap_data (project_id, event_id,record,field_name,value) VALUES (186, 1095,13,'patient_signature', 805);
+                if ($q == 0) {
+                    //no existing signature, so update signature over to the final event
+                    $values[] = sprintf("('%s', '%s','%s', '%s','%s')",
+                                        prep($to_project_id),
+                                        prep($final_event),
+                                        prep($record),
+                                        prep($field_name),
+                                        prep($doc_id));
+                }
+            }
+        }
+        $value_str = implode(',', $values);
+
+        if (!empty($values)) {
+            $insert_sql = "INSERT INTO redcap_data (project_id, event_id,record,field_name,value) VALUES  " . $value_str . ';';
+            $sig_status = db_query($insert_sql);
+        }
+
+        return $sig_status;
     }
 
     /*******************************************************************************************************************/

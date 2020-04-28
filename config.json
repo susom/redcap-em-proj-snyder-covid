@@ -114,6 +114,12 @@
 			"type": "field-list"
 		},
 		{
+			"key": "migration-field-desc",
+			"name": "<div class='alert alert-warning'><h4>Migration Fields </h4><br>These following fields are related to the migration.</div>",
+			"required": false,
+			"type": "descriptive"
+		},
+		{
 			"key": "main-event",
 			"name": "<b>Main Event</b><br>Enrollment / base event ",
 			"required": false,
@@ -124,7 +130,14 @@
 			"name": "<b>Repeating Diary Event</b><br>Repeating diary event ",
 			"required": false,
 			"type": "event-list"
+		},
+		{
+			"key": "orig-sig-event",
+			"name": "<b>Original Project Signature Event</b><br>Enter the event id of theo original project's signature event ",
+			"required": false,
+			"type": "text"
 		}
+
 	],
 
 
