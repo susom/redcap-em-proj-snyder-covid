@@ -56,10 +56,12 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
         );
         $dd = REDCap::getDataDictionary($origin_pid, 'array', false, false, $instruments);
         $field_list = array_keys($dd);
+        $field_complete = array('consent_form_2_complete', 'participant_information_complete', 'medical_history_complete',
+            'first_check_in_complete', 'daily_checkin_email_complete', 'daily_checkin_sms_complete');
         $params = array(
             'project_id'=>$origin_pid,
             'return_format'    => 'json',
-            'fields' => $field_list
+            'fields' => array_merge($field_list, $field_complete)
         );
         $q = REDCap::getData($params);
 
@@ -101,6 +103,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 // add 'daily' to 'rsp_prt_config_id'
                 $prt_form[REDCap::getRecordIdField()] = $v[REDCap::getRecordIdField()];
                 $prt_form['rsp_prt_config_id'] = 'daily';
+                $prt_form['rsp_prt_start_date'] = $this->getProjectSetting('default-start-date');
 
                 // copy email_address_v2   to 'rsp_prt_portal_email'  if not blank
                 $prt_form['rsp_prt_portal_email'] = $v['email_address_v2'];
@@ -121,8 +124,9 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 $v['eligible_age'] = $v['agree_to_be_in_study_v2'];
                 //unset($v['agree_to_be_in_study_v2']);
 
+                //add in the completion status
                 $v['consent_complete'] = $v['consent_form_2_complete'];
-
+                $v['screening_complete'] = $v['consent_form_2_complete'];
 
             }
 
