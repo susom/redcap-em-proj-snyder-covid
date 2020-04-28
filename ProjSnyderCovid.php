@@ -47,9 +47,19 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
 
         $re = '/day_+(?<daynum>\d+)_arm_1/m';
 
+        //there are lots of orphaned data with wrong values being return with getData. So limit the fields to the 5 valid forms
+        $dd_params = array(
+            'project_id' => $origin_pid,
+            'returnFormat' =>'array',
+            'instruments' => array('consent_form_2', 'participant_information', 'medical_history', 'first_check_in',
+                'daily_checkin_email', 'daily_checkin_sms')
+        );
+        $dd = REDCap::getDataDictionary($origin_pid, 'array', false, false, $instruments);
+        $field_list = array_keys($dd);
         $params = array(
             'project_id'=>$origin_pid,
-            'return_format'    => 'json'
+            'return_format'    => 'json',
+            'fields' => $field_list
         );
         $q = REDCap::getData($params);
 
@@ -123,14 +133,14 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 //grok out the day number from the event name
                 preg_match_all($re, $incoming_event, $matches, PREG_SET_ORDER, 0);
                 $day_num = $matches[0]['daynum'];
-                $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('diary-event'));
+                $new_event = REDCap::getEventNames(true, false, $this->getProjectSetting('diary-event'));
                 //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
                 $v['redcap_repeat_instance'] = $day_num;
 
 
                 //in daily arm so add the survey meta data
                 $v['rsp_survey_config'] = 'daily';
-                $v['rsp_survey_date']   = $v['date'];
+                $v['rsp_survey_date'] = $v['date'];
                 $v['rsp_survey_day_number'] = $day_num;
 
                 //if the _complete status is 0, then don't enter it.
@@ -141,6 +151,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                     unset($v['daily_checkin_email_complete']);
                 }
 
+            }
                 //data cleaning
                 //these fields have codes that are no longer valid
                 if ($v['extreme_hr']=='2') {
@@ -150,7 +161,6 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                     unset($v['weight_loss']);
                 }
 
-            }
             unset($v['consent_form_2_complete']);
             $v['redcap_event_name'] = $new_event;
 
