@@ -45,7 +45,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
      */
     function process($origin_pid, $first_ct = 0, $last_ct = null) {
 
-        $re = '/day_(?<daynum>\d+)_arm_1/m';
+        $re = '/day_+(?<daynum>\d+)_arm_1/m';
 
         $params = array(
             'project_id'=>$origin_pid,
@@ -55,23 +55,19 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
 
         $records = json_decode($q, true);
 
-        foreach ($records as $k => $row) {
 
-            $rec_id = $v['record_id'];
+        foreach ($records as $k => $row) {
+            $prt_form = null;  //reset
+
+            $rec_id = $row['record_id'];
 
 
             //remove empty fields from row
-            $v = array_filter($row);
+            //array_filter will filter out values of '0' so add function to force it to include the 0 values
+            $v = array_filter($row, function($value) {
+                return ($value !== null && $value !== false && $value !== '');
+            });
 
-            //These field need to be renamed
-            //agree_to_be_in_study_v2,
-            // ADDED confirmed_suspected, symptom_onset_0,
-            // CHANGE consent_form_2_complete, gender_affirming_care, more_gender_care, pregnancy_stage
-            $v['eligible_age'] = $v['agree_to_be_in_study_v2'];
-            //unset($v['agree_to_be_in_study_v2']);
-
-            $v['consent_complete'] = $v['consent_form_2_complete'];
-            unset($v['consent_form_2_complete']);
 
 
             if (($first_ct != null) && ($rec_id < $first_ct)) {
@@ -90,21 +86,71 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
 
             if (substr( $incoming_event, 0, 6 ) === "enroll") {
                 $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('main-event'));
+
+                //in enrollment arm, copy  consent_date_v2 to 'rsp_prt_start_date'
+                // add 'daily' to 'rsp_prt_config_id'
+                $prt_form[REDCap::getRecordIdField()] = $v[REDCap::getRecordIdField()];
+                $prt_form['rsp_prt_config_id'] = 'daily';
+
+                // copy email_address_v2   to 'rsp_prt_portal_email'  if not blank
+                $prt_form['rsp_prt_portal_email'] = $v['email_address_v2'];
+
+                // copy phone_num_v2    to 'rsp_prt_portal_phone'      if not blank
+                $prt_form['rsp_prt_portal_phone'] = $v['phone_num_v2'];
+                //$prt_form['redcap_repeat_instrument'] = 'rsp_participant_info';
+                $prt_form['redcap_repeat_instance'] = '1';
+                $prt_form['redcap_event_name'] = $new_event;
+
+                //hold on to consent_date
+                //$consent_dates[$rec_id] = $v['consent_date_v2'];
+
+                //These field need to be renamed
+                //agree_to_be_in_study_v2,
+                // ADDED confirmed_suspected, symptom_onset_0,
+                // CHANGE consent_form_2_complete, gender_affirming_care, more_gender_care, pregnancy_stage
+                $v['eligible_age'] = $v['agree_to_be_in_study_v2'];
+                //unset($v['agree_to_be_in_study_v2']);
+
+                $v['consent_complete'] = $v['consent_form_2_complete'];
+
             }
 
             if (substr( $incoming_event, 0, 4 ) === "day_") {
+                //there are typos where the are two underscores in a row
+                str_replace('__', '_', $incoming_event);
+
                 //grok out the day number from the event name
                 preg_match_all($re, $incoming_event, $matches, PREG_SET_ORDER, 0);
                 $day_num = $matches[0]['daynum'];
                 $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('diary-event'));
                 //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
                 $v['redcap_repeat_instance'] = $day_num;
-            }
 
+
+                //in daily arm so add the survey meta data
+                $v['rsp_survey_config'] = 'daily';
+                $v['rsp_survey_date']   = $v['date'];
+                $v['rsp_survey_day_number'] = $day_num;
+
+                //if the _complete status is 0, then don't enter it.
+                if ($v['daily_checkin_sms_complete'] == '0') {
+                    unset($v['daily_checkin_sms_complete']);
+                }
+                if ($v['daily_checkin_email_complete'] == '0') {
+                    unset($v['daily_checkin_email_complete']);
+                }
+
+            }
+            unset($v['consent_form_2_complete']);
             $v['redcap_event_name'] = $new_event;
 
+            $migrate_arrays = array($v);
+            if ($prt_form != null) {
+                $migrate_arrays[] = $prt_form;
+            }
+
             //save data record and event
-            $response = REDCap::saveData('json', json_encode(array($v)));
+            $response = REDCap::saveData('json', json_encode($migrate_arrays));
             if (!empty($response['errors'])) {
                 $msg = ("Not able to save data for row $k for record $rec_id in event $incoming_event");
                 $this->emError($msg, $response['errors']);
