@@ -22,7 +22,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
     /* HOOK METHODS                                                                                                    */
     /***************************************************************************************************************** */
 
-    function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance = 1 ) {
+    function redcap_save_record($project_id, $record, $instrument, $event_id) {
 
         //make sure the auto create is turned on
         $config_autocreate = $this->getProjectSetting('autocreate_rsp_participant_page');
@@ -35,6 +35,87 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
     }
 
 
+    /*******************************************************************************************************************/
+    /* MIGRATION METHODS                                                                                              */
+    /***************************************************************************************************************** */
+
+    /**
+     * migrate all the fields
+     *
+     */
+    function process($origin_pid, $first_ct = 0, $last_ct = null) {
+
+        $re = '/day_(?<daynum>\d+)_arm_1/m';
+
+        $params = array(
+            'project_id'=>$origin_pid,
+            'return_format'    => 'json'
+        );
+        $q = REDCap::getData($params);
+
+        $records = json_decode($q, true);
+
+        foreach ($records as $k => $row) {
+
+            $rec_id = $v['record_id'];
+
+
+            //remove empty fields from row
+            $v = array_filter($row);
+
+            //These field need to be renamed
+            //agree_to_be_in_study_v2,
+            // ADDED confirmed_suspected, symptom_onset_0,
+            // CHANGE consent_form_2_complete, gender_affirming_care, more_gender_care, pregnancy_stage
+            $v['eligible_age'] = $v['agree_to_be_in_study_v2'];
+            //unset($v['agree_to_be_in_study_v2']);
+
+            $v['consent_complete'] = $v['consent_form_2_complete'];
+            unset($v['consent_form_2_complete']);
+
+
+            if (($first_ct != null) && ($rec_id < $first_ct)) {
+                echo "<br> Skipping row $k: RECORD: $rec_id ";
+                continue;
+            }
+
+            if (($last_ct != null) && ($rec_id > $last_ct )) {
+                echo "<br> Skipping row $k: RECORD: $rec_id greater than max";
+                continue;
+            }
+            echo "<br> Analyzing row $k: RECORD: $rec_id ";
+
+            //reset the event name
+            $incoming_event = $v['redcap_event_name'];
+
+            if (substr( $incoming_event, 0, 6 ) === "enroll") {
+                $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('main-event'));
+            }
+
+            if (substr( $incoming_event, 0, 4 ) === "day_") {
+                //grok out the day number from the event name
+                preg_match_all($re, $incoming_event, $matches, PREG_SET_ORDER, 0);
+                $day_num = $matches[0]['daynum'];
+                $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('diary-event'));
+                //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
+                $v['redcap_repeat_instance'] = $day_num;
+            }
+
+            $v['redcap_event_name'] = $new_event;
+
+            //save data record and event
+            $response = REDCap::saveData('json', json_encode(array($v)));
+            if (!empty($response['errors'])) {
+                $msg = ("Not able to save data for row $k for record $rec_id in event $incoming_event");
+                $this->emError($msg, $response['errors']);
+                echo $msg;
+            }
+
+
+        }
+
+
+    }
 
     /*******************************************************************************************************************/
     /* AUTOCREATE METHODS                                                                                              */

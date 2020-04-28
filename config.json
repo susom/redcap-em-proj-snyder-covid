@@ -23,7 +23,12 @@
 
 	"links": {
 		"project": [
-
+			{
+				"name": "Migrator",
+				"icon": "page_white_stack",
+				"url": "view/index.php",
+				"show-header-and-footer": true
+			}
 		],
 		"control-center": [
 
@@ -107,6 +112,18 @@
 			"name": "<b>Phone Field</b><br>Field where phone is recorded for this participant (to be used for survey invites/reminders) ",
 			"required": false,
 			"type": "field-list"
+		},
+		{
+			"key": "main-event",
+			"name": "<b>Main Event</b><br>Enrollment / base event ",
+			"required": false,
+			"type": "event-list"
+		},
+		{
+			"key": "diary-event",
+			"name": "<b>Repeating Diary Event</b><br>Repeating diary event ",
+			"required": false,
+			"type": "event-list"
 		}
 	],
 
