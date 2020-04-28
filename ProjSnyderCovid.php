@@ -8,24 +8,29 @@ use DateInterval;
 
 require_once "emLoggerTrait.php";
 
-class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
+class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
+{
 
     use emLoggerTrait;
 
-    public function __construct() {
-		parent::__construct();
-		// Other code to run when object is instantiated
-	}
+    public function __construct()
+    {
+        parent::__construct();
+        // Other code to run when object is instantiated
+    }
 
+    public $projectId;
 
     /*******************************************************************************************************************/
     /* HOOK METHODS                                                                                                    */
     /***************************************************************************************************************** */
 
-    function redcap_save_record($project_id, $record, $instrument, $event_id) {
+    function redcap_save_record($project_id, $record, $instrument, $event_id)
+    {
 
+        $this->projectId = $project_id;
         //make sure the auto create is turned on
-        $config_autocreate = $this->getProjectSetting('autocreate_rsp_participant_page');
+        $config_autocreate = $this->getProjectSetting('autocreate_rsp_participant_page', $this->projectId);
 
         if ($config_autocreate == true) {
             $this->autocreateRSPForm($project_id, $record, $instrument, $event_id);
@@ -97,13 +102,14 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
             $incoming_event = $v['redcap_event_name'];
 
             if (substr( $incoming_event, 0, 6 ) === "enroll") {
-                $new_event = REDCap::getEventNames(true, false,$this->getProjectSetting('main-event'));
+                $new_event = REDCap::getEventNames(true, false,
+                    $this->getProjectSetting('main-event', $this->projectId));
 
                 //in enrollment arm, copy  consent_date_v2 to 'rsp_prt_start_date'
                 // add 'daily' to 'rsp_prt_config_id'
                 $prt_form[REDCap::getRecordIdField()] = $v[REDCap::getRecordIdField()];
                 $prt_form['rsp_prt_config_id'] = 'daily';
-                $prt_form['rsp_prt_start_date'] = $this->getProjectSetting('default-start-date');
+                $prt_form['rsp_prt_start_date'] = $this->getProjectSetting('default-start-date', $this->projectId);
 
                 // copy email_address_v2   to 'rsp_prt_portal_email'  if not blank
                 $prt_form['rsp_prt_portal_email'] = $v['email_address_v2'];
@@ -137,7 +143,8 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
                 //grok out the day number from the event name
                 preg_match_all($re, $incoming_event, $matches, PREG_SET_ORDER, 0);
                 $day_num = $matches[0]['daynum'];
-                $new_event = REDCap::getEventNames(true, false, $this->getProjectSetting('diary-event'));
+                $new_event = REDCap::getEventNames(true, false,
+                    $this->getProjectSetting('diary-event', $this->projectId));
                 //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
                 $v['redcap_repeat_instance'] = $day_num;
 
@@ -205,7 +212,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
      * @return bool|\mysqli_result
      */
     public function copyOverSigFields($from_project_id, $to_project_id, $record, $file_fields, $from_event_id) {
-        $final_event = $this->getProjectSetting('main-event');
+        $final_event = $this->getProjectSetting('main-event', $this->projectId);
 
         $sig_status = true;
 
@@ -267,10 +274,11 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
 
 
 
-    function autocreateRSPForm($project_id, $record, $instrument, $event_id) {
+    function autocreateRSPForm($project_id, $record, $instrument, $event_id)
+    {
 
-        $target_form          = $this->getProjectSetting('triggering-instrument');
-        $config_event         = $this->getProjectSetting('trigger-event-name');
+        $target_form = $this->getProjectSetting('triggering-instrument', $this->projectId);
+        $config_event = $this->getProjectSetting('trigger-event-name', $this->projectId);
 
 
         //chaeck that instrument is the correct targeting form and event
@@ -278,27 +286,30 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
             return;
         }
 
-        $autocreate_logic     = $this->getProjectSetting('autocreate-rsp-participant-page-logic');
+        $autocreate_logic = $this->getProjectSetting('autocreate-rsp-participant-page-logic', $this->projectId);
 
         //check the autocreate logic
         if (!empty($autocreate_logic)) {
-            $result = REDCap::evaluateLogic($autocreate_logic,$project_id,$record, $event_id);
-            if ($result !== true)  {
-                $this->emLog("Record $record failed autocreate logic: ". $autocreate_logic);
+            $result = REDCap::evaluateLogic($autocreate_logic, $project_id, $record, $event_id);
+            if ($result !== true) {
+                $this->emLog("Record $record failed autocreate logic: " . $autocreate_logic);
                 return;
             }
         }
 
-        $config_field         = $this->getProjectSetting('config-field'); //name of the field that contains the config id in the participant form i.e. 'rsp_prt_config_id
-        $config_id            = $this->getProjectSetting('portal-config-name'); //name of the config entered in the portal ME config
-        $target_instrument    = $this->getProjectSetting('target-instrument');
+        $config_field = $this->getProjectSetting('config-field',
+            $this->projectId); //name of the field that contains the config id in the participant form i.e. 'rsp_prt_config_id
+        $config_id = $this->getProjectSetting('portal-config-name',
+            $this->projectId); //name of the config entered in the portal ME config
+        $target_instrument = $this->getProjectSetting('target-instrument', $this->projectId);
 
 
         //get the relevant data fields to check
         $params = array(
+            'project_id' => $this->projectId,
             'return_format' => 'json',
             'records' => $record,
-            'fields' => array(REDCap::getRecordIdField(),'rsp_prt_config_id', $target_instrument),
+            'fields' => array(REDCap::getRecordIdField(), 'rsp_prt_config_id', $target_instrument),
             'events' => $config_event
         );
 
@@ -344,9 +355,10 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
         //TODO: return_format of 'array' returns nothing if using repeating events???
         //$get_data = array('redcap_repeat_instance');
         $params = array(
-            'return_format'       => 'array',
-            'fields'              => array('redcap_repeat_instance','rsp_prt_start_date',$instrument."_complete"),
-            'records'             => $record
+            'project_id' => $this->projectId,
+            'return_format' => 'array',
+            'fields' => array('redcap_repeat_instance', 'rsp_prt_start_date', $instrument . "_complete"),
+            'records' => $record
             //'events'              => $this->portalConfig->surveyEventID
         );
         $q = REDCap::getData($params);
@@ -370,27 +382,28 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
     function updateRSPParticipantInfoForm($config_id, $record, $event_id)
     {
         //$target_form          = $this->getProjectSetting('triggering-instrument');
-       // $config_field         = $this->getProjectSetting('portal-config-name');
+        // $config_field         = $this->getProjectSetting('portal-config-name');
 
-        $config_event         = $this->getProjectSetting('trigger-event-name');
-        $target_instrument    = $this->getProjectSetting('target-instrument');
+        $config_event = $this->getProjectSetting('trigger-event-name', $this->projectId);
+        $target_instrument = $this->getProjectSetting('target-instrument', $this->projectId);
 
         //get the date to enter for the start date
-        $default_date         = $this->getProjectSetting('default-start-date');
+        $default_date = $this->getProjectSetting('default-start-date', $this->projectId);
 
         //format the default date of the survey portal start
-        $start_date     = new DateTime($default_date);
+        $start_date = new DateTime($default_date);
         $start_date_str = $start_date->format('Y-m-d');
 
         //get the email and phone number from the consent form.
-        $email_field    = $this->getProjectSetting('email-field');
-        $phone_field    = $this->getProjectSetting('phone-field');
+        $email_field = $this->getProjectSetting('email-field', $this->projectId);
+        $phone_field = $this->getProjectSetting('phone-field', $this->projectId);
 
         $params = array(
-            'return_format'       => 'json',
-            'records'             => $record,
-            'fields'              => array($email_field,$phone_field),
-            'events'              => $event_id
+            'project_id' => $this->projectId,
+            'return_format' => 'json',
+            'records' => $record,
+            'fields' => array($email_field, $phone_field),
+            'events' => $event_id
         );
 
         $q = REDCap::getData($params);
@@ -426,19 +439,25 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule {
     /***************************************************************************************************************** */
 
 
-    function saveForm($record_id, $event_id, $data_array, $instrument,$repeat_instance) {
+    function saveForm($record_id, $event_id, $data_array, $instrument,$repeat_instance)
+    {
         //$instrument = 'rsp_participant_info';
 
+        //because we will hit this code from different project context we need to get the correct event name to save.
+        $proj = new \Project($this->projectId);
+        $name = $proj->getUniqueEventNames($event_id);
+
+
         $params = array(
-            REDCap::getRecordIdField()                => $record_id,
-            'redcap_event_name'                       => REDCap::getEventNames(true, false, $event_id),
-            'redcap_repeat_instrument'                => $instrument,
-            'redcap_repeat_instance'                  => $repeat_instance
+            REDCap::getRecordIdField() => $record_id,
+            'redcap_event_name' => $name,
+            'redcap_repeat_instrument' => $instrument,
+            'redcap_repeat_instance' => $repeat_instance
         );
 
         $data = array_merge($params, $data_array);
 
-        $result = REDCap::saveData('json', json_encode(array($data)));
+        $result = REDCap::saveData($this->projectId, 'json', json_encode(array($data)));
         if ($result['errors']) {
             $this->emError($result['errors'], $params);
             $msg[] = "Error while trying to add $instrument form.";
