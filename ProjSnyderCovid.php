@@ -337,7 +337,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         //this config name was not fouund in any instnace of rsp_participant_instance
         if (empty($daily_config_set)) {
             //creating a new instance
-            $this->updateRSPParticipantInfoForm($config_id, $record, $event_id);
+            $this->updateRSPParticipantInfoForm($project_id,$config_id, $record, $event_id);
 
         }
 
@@ -391,7 +391,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
 
 
-    function updateRSPParticipantInfoForm($config_id, $record, $event_id)
+    function updateRSPParticipantInfoForm($project_id, $config_id, $record, $event_id)
     {
         //$target_form          = $this->getProjectSetting('triggering-instrument');
         // $config_field         = $this->getProjectSetting('portal-config-name');
@@ -443,7 +443,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
         //trigger the hash creation and sending of the email by triggering the redcap_save_record hook on  the rsp_participant_info form
         // \Hooks::call('redcap_save_record', array($child_pid, $child_id, $_GET['page'], $child_event_name, $group_id, null, null, $_GET['instance']));
-        \Hooks::call('redcap_save_record', array($this->getProjectId(), $record, $target_instrument, $config_event, null, null, null, $next_repeat_instance));
+        \Hooks::call('redcap_save_record', array($project_id, $record, $target_instrument, $config_event, null, null, null, $next_repeat_instance));
     }
 
     /*******************************************************************************************************************/
