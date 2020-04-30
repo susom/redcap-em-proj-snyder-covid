@@ -72,6 +72,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
         $records = json_decode($q, true);
 
+        $default_start_date = $this->getProjectSetting('default-start-date', $this->projectId);
 
         foreach ($records as $k => $row) {
             $prt_form = null;  //reset
@@ -109,7 +110,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 // add 'daily' to 'rsp_prt_config_id'
                 $prt_form[REDCap::getRecordIdField()] = $v[REDCap::getRecordIdField()];
                 $prt_form['rsp_prt_config_id'] = 'daily';
-                $prt_form['rsp_prt_start_date'] = $this->getProjectSetting('default-start-date', $this->projectId);
+                $prt_form['rsp_prt_start_date'] = $default_start_date;
 
                 // copy email_address_v2   to 'rsp_prt_portal_email'  if not blank
                 $prt_form['rsp_prt_portal_email'] = $v['email_address_v2'];
@@ -146,13 +147,16 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 $new_event = REDCap::getEventNames(true, false,
                     $this->getProjectSetting('diary-event', $this->projectId));
                 //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
+                //TODO: get the next instance number
                 $v['redcap_repeat_instance'] = $day_num;
 
 
                 //in daily arm so add the survey meta data
                 $v['rsp_survey_config'] = 'daily';
                 $v['rsp_survey_date'] = $v['date'];
-                $v['rsp_survey_day_number'] = $day_num;
+
+                //calculate rsp_instance against the default start date
+                $v['rsp_survey_day_number'] = $this->calculateDayNumber($default_start_date, $v['date']);
 
                 //if the _complete status is 0, then don't enter it.
                 if ($v['daily_checkin_sms_complete'] == '0') {
@@ -213,6 +217,30 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
 
     }
+
+    public function calculateDayNumber($start_str, $end_str) {
+        //use today
+        $date = new DateTime($end_str);
+        $start = new DateTime($start_str);
+
+        $interval = $start->diff($date);
+
+        $diff_date = $interval->format("%r%a");
+        $diff_hours = $interval->format("%r%h");
+
+        // need at add one day since start is day 0??
+        //Need to check that the diff in hours is greater than 0 as date diff is calculating against midnight today
+        //and partial days > 12 hours was being considered as 1 day.
+        if ( $diff_hours >= 0) {
+            //actually, don't add 1. start date should be 0.
+            //return ($interval->days + 1);
+            return ($diff_date);
+        } else {
+            return ($diff_date - 1);
+        }
+        return null;
+    }
+
 
     /**
      * Copy over the signature field from the passed in event
