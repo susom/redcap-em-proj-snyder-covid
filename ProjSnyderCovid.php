@@ -131,6 +131,13 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 $v['eligible_age'] = $v['agree_to_be_in_study_v2'];
                 //unset($v['agree_to_be_in_study_v2']);
 
+                //coding for why_high_risk changed from note field to radiobutton
+                //import into new field why_high_risk_note
+                if (($v['why_high_risk'] != '1') or ($v['why_high_risk'] != '2') or ($v['why_high_risk'] != '99')) {
+                    $v['why_high_risk_note'] = $v['why_high_risk'];
+                    unset($v['why_high_risk']);
+                }
+
                 //add in the completion status
                 $v['consent_complete'] = $v['consent_form_2_complete'];
                 $v['screening_complete'] = $v['consent_form_2_complete'];
