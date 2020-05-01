@@ -135,6 +135,9 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 $v['consent_complete'] = $v['consent_form_2_complete'];
                 $v['screening_complete'] = $v['consent_form_2_complete'];
 
+                //add checkbox to form to signal that it's been migrated from original project
+                $v['migrated_18747___1'] = '1';
+
             }
 
             if (substr( $incoming_event, 0, 4 ) === "day_") {
