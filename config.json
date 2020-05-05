@@ -96,6 +96,18 @@
 			"type": "form-list"
 		},
 		{
+			"key": "participant-info-instrument",
+			"name": "<b>Participant Information Instrument</b><br>The survey preference is in this form, update with newly selected option (default is both disabled).",
+			"required": false,
+			"type": "form-list"
+		},
+		{
+			"key": "survey-pref-field",
+			"name": "<b>Survey Preference Field</b><BR>Field where survey preference is located) ",
+			"required": false,
+			"type": "field-list"
+		},
+		{
 			"key": "default-start-date",
 			"name": "<div class='alert alert-warning'><b>Default date to enter for Survey Portal Start</b></div><br>Enter date to enter for all newly created records. Enter in the format 'Y-m-d'. Ex: '2020-03-15<br>Leave blank to enter 'today'",
 			"required": false,

@@ -36,6 +36,11 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
             $this->autocreateRSPForm($project_id, $record, $instrument, $event_id);
         }
 
+        $survey_pref_form = $this->getProjectSetting('participant-info-instrument', $project_id);
+        $config_event = $this->getProjectSetting('trigger-event-name', $project_id);
+        if (($instrument == $survey_pref_form) && ($event_id == $config_event)) {
+            $this->setEmailSmsPreference($project_id, $record, $event_id);
+        }
 
     }
 
@@ -117,6 +122,21 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
                 // copy phone_num_v2    to 'rsp_prt_portal_phone'      if not blank
                 $prt_form['rsp_prt_portal_phone'] = $v['phone_num_v2'];
+
+                //this was not used (added May 5)
+                //if the survey_preference is 1 = email, 2 = sms
+                if ($v['survey_preference'] == '1') {
+                    //email so disable sms
+                    $prt_form['rsp_prt_disable_sms___1'] = '1';
+                } else if ($v['survey_preference'] == '2') {
+                    //sms so disable email
+                    $prt_form['rsp_prt_disable_email___1'] = '1';
+                } else {
+                    //none are set, so disable both
+                    $prt_form['rsp_prt_disable_sms___1'] = '1';
+                    $prt_form['rsp_prt_disable_email___1'] = '1';
+                }
+
                 //$prt_form['redcap_repeat_instrument'] = 'rsp_participant_info';
                 $prt_form['redcap_repeat_instance'] = '1';
                 $prt_form['redcap_event_name'] = $new_event;
@@ -322,6 +342,58 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     /* AUTOCREATE METHODS                                                                                              */
     /***************************************************************************************************************** */
 
+    /**
+     * Once the participant_information form is filled out, get the survey_preference and update
+     * the RSP_participant_informaiton form
+     *
+     * @param $project_id
+     * @param $record
+     * @param $event_id
+     */
+    function setEmailSmsPreference($project_id, $record, $event_id) {
+        $survey_pref_field =$this->getProjectSetting('survey-pref-field', $project_id);
+        $params = array(
+            'project_id' => $project_id,
+            'return_format' => 'array',
+            'records' => $record,
+            'fields' => array(
+                $survey_pref_field,
+                'rsp_prt_portal_email',
+                'rsp_prt_portal_phone',
+                'rsp_prt_disable_sms',
+                'rsp_prt_disable_email'
+            ),
+            'events' => $event_id
+        );
+
+        $q = REDCap::getData($params);
+        //$results = json_decode($q, true);
+        //$entered_data = current($results);
+
+        //survey_preferences are in the none repeating form
+        $survey_preference = $q[$record][$event_id][$survey_pref_field];
+
+        //if the survey_preference is 1 = email, 2 = sms
+        if ($survey_preference == '1') {
+            //email so disable sms
+            $rsp_form['rsp_prt_disable_sms___1'] = '1';
+            $rsp_form['rsp_prt_disable_email___1'] = '0';
+        } else if ($survey_preference == '2') {
+            //sms so disable email
+            $rsp_form['rsp_prt_disable_sms___1'] = '0';
+            $rsp_form['rsp_prt_disable_email___1'] = '1';
+        } else {
+            //none are set, so disable both
+            $rsp_form['rsp_prt_disable_sms___1'] = '1';
+            $rsp_form['rsp_prt_disable_email___1'] = '1';
+        }
+
+        $target_instrument = $this->getProjectSetting('target-instrument',$project_id);
+
+        $repeat_instance = 1;  //hardcoding as 1 since only have one config.
+
+        $this->saveForm($record, $event_id, $rsp_form, $target_instrument,$repeat_instance);
+    }
 
 
     function autocreateRSPForm($project_id, $record, $instrument, $event_id)
@@ -460,7 +532,9 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $results = json_decode($q, true);
         $enter_data = current($results);
 
-        $next_repeat_instance = $this->getNextRepeatingInstanceID($record, $target_instrument,$config_event);
+        //todo should this just be hardcoded to 1?
+        //$next_repeat_instance = $this->getNextRepeatingInstanceID($record, $target_instrument,$config_event);
+        $next_repeat_instance = 1;
         $this->emDebug("NEXT Repeating Instance ID for  ".$record ." IS ".$next_repeat_instance);
 
 
@@ -473,8 +547,11 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
             'rsp_prt_portal_email' => $enter_data[$email_field],
             'rsp_prt_portal_phone' => $enter_data[$phone_field],
             'rsp_prt_start_date'  => $start_date_str,
-            'rsp_prt_config_id'    => $config_id //i.e. 'daily'
+            'rsp_prt_disable_sms___1'   => '1',  //when initially created, set disable to true (this will reset in participant info form
+            'rsp_prt_disable_email___1' => '1',  //ditto
+            'rsp_prt_config_id'         => $config_id //i.e. 'daily'
         );
+
 
         //save the data
         $this->saveForm($record, $config_event, $data_array, $target_instrument,$next_repeat_instance);
