@@ -384,8 +384,9 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
             $rsp_form['rsp_prt_disable_email___1'] = '1';
         } else {
             //none are set, so disable both
+            //from mtg of May 15: if no preference, set it to send emails
             $rsp_form['rsp_prt_disable_sms___1'] = '1';
-            $rsp_form['rsp_prt_disable_email___1'] = '1';
+            $rsp_form['rsp_prt_disable_email___1'] = '0';
         }
 
         $target_instrument = $this->getProjectSetting('target-instrument',$project_id);
