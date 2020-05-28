@@ -45,6 +45,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     }
 
 
+
     /*******************************************************************************************************************/
     /* MIGRATION METHODS                                                                                              */
     /***************************************************************************************************************** */
@@ -109,7 +110,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
             if (substr( $incoming_event, 0, 6 ) === "enroll") {
                 $new_event = REDCap::getEventNames(true, false,
-                    $this->getProjectSetting('main-event', $this->projectId));
+                                                   $this->getProjectSetting('main-event', $this->projectId));
 
                 //in enrollment arm, copy  consent_date_v2 to 'rsp_prt_start_date'
                 // add 'daily' to 'rsp_prt_config_id'
@@ -175,7 +176,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 preg_match_all($re, $incoming_event, $matches, PREG_SET_ORDER, 0);
                 $day_num = $matches[0]['daynum'];
                 $new_event = REDCap::getEventNames(true, false,
-                    $this->getProjectSetting('diary-event', $this->projectId));
+                                                   $this->getProjectSetting('diary-event', $this->projectId));
                 //$v['redcap_repeat_instrument'] = 'daily_checkin_email';
                 //TODO: get the next instance number
                 $v['redcap_repeat_instance'] = $day_num;
@@ -197,14 +198,14 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 }
 
             }
-                //data cleaning
-                //these fields have codes that are no longer valid
-                if ($v['extreme_hr']=='2') {
-                    unset($v['extreme_hr']);
-                }
-                if ($v['weight_loss']=='2') {
-                    unset($v['weight_loss']);
-                }
+            //data cleaning
+            //these fields have codes that are no longer valid
+            if ($v['extreme_hr']=='2') {
+                unset($v['extreme_hr']);
+            }
+            if ($v['weight_loss']=='2') {
+                unset($v['weight_loss']);
+            }
 
             unset($v['consent_form_2_complete']);
             $v['redcap_event_name'] = $new_event;
@@ -338,13 +339,14 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         return $sig_status;
     }
 
+
     /*******************************************************************************************************************/
     /* AUTOCREATE METHODS                                                                                              */
     /***************************************************************************************************************** */
 
     /**
      * Once the participant_information form is filled out, get the survey_preference and update
-     * the RSP_participant_informaiton form
+     * the RSP_participant_information form
      *
      * @param $project_id
      * @param $record
@@ -373,27 +375,41 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         //survey_preferences are in the none repeating form
         $survey_preference = $q[$record][$event_id][$survey_pref_field];
 
+        $log_msg  = '';
         //if the survey_preference is 1 = email, 2 = sms
         if ($survey_preference == '1') {
             //email so disable sms
             $rsp_form['rsp_prt_disable_sms___1'] = '1';
             $rsp_form['rsp_prt_disable_email___1'] = '0';
+            $log_msg = "Converted survey_preference of $survey_preference to receive the daily survey by email.";
         } else if ($survey_preference == '2') {
             //sms so disable email
             $rsp_form['rsp_prt_disable_sms___1'] = '0';
             $rsp_form['rsp_prt_disable_email___1'] = '1';
+            $log_msg = "Converted survey_preference of $survey_preference to receive the daily survey by texts.";
         } else {
             //none are set, so disable both
             //from mtg of May 15: if no preference, set it to send emails
             $rsp_form['rsp_prt_disable_sms___1'] = '1';
             $rsp_form['rsp_prt_disable_email___1'] = '0';
+            $log_msg = "Converted survey_preference of $survey_preference to receive the daily survey by email.";
         }
 
         $target_instrument = $this->getProjectSetting('target-instrument',$project_id);
 
         $repeat_instance = 1;  //hardcoding as 1 since only have one config.
 
-        $this->saveForm($record, $event_id, $rsp_form, $target_instrument,$repeat_instance);
+        $this->saveForm($project_id,$record, $event_id, $rsp_form, $target_instrument,$repeat_instance);
+
+        //add entry into redcap logging about saved form
+        REDCap::logEvent(
+            "Survey Preference updated by Snyder Covid EM",  //action
+            $log_msg, //change msg
+            NULL, //sql optional
+            $record, //record optional
+            $event_id, //event optional
+            $project_id //project ID optional
+        );
     }
 
 
@@ -555,7 +571,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
 
         //save the data
-        $this->saveForm($record, $config_event, $data_array, $target_instrument,$next_repeat_instance);
+        $save_msg = $this->saveForm($project_id, $record, $config_event, $data_array, $target_instrument,$next_repeat_instance);
 
         //trigger the hash creation and sending of the email by triggering the redcap_save_record hook on  the rsp_participant_info form
         // \Hooks::call('redcap_save_record', array($child_pid, $child_id, $_GET['page'], $child_event_name, $group_id, null, null, $_GET['instance']));
@@ -567,7 +583,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     /***************************************************************************************************************** */
 
 
-    function saveForm($record_id, $event_id, $data_array, $instrument,$repeat_instance)
+    function saveForm($project_id, $record_id, $event_id, $data_array, $instrument,$repeat_instance)
     {
         //$instrument = 'rsp_participant_info';
 
@@ -588,11 +604,26 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $result = REDCap::saveData($this->projectId, 'json', json_encode(array($data)));
         if ($result['errors']) {
             $this->emError($result['errors'], $params);
-            $msg[] = "Error while trying to add $instrument form.";
+            $msg = "Error while trying to save date to  $instrument instance $repeat_instance.";
             //return false;
         } else {
-            $msg[] = "Successfully saved data to $instrument.";
+            $msg = "Successfully saved data to $instrument instance $repeat_instance.";
         }
 
+        //add entry into redcap logging about saved form
+        REDCap::logEvent(
+            "RSP Participant Info page created by Snyder Covid EM",  //action
+            $msg,  //change msg
+            NULL, //sql optional
+            $record_id, //record optional
+            $event_id, //event optional
+            $project_id //project ID optional
+        );
+
+        return $msg;
+
     }
+
+
+
 }

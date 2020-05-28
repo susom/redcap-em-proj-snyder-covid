@@ -48,28 +48,46 @@
 		},
 		{
 			"key": "portal-autocreate-desc",
-			"name": "<div class='alert alert-warning'><h3>AUTO POPULATE RSP Participant Info Form </h3><br>Upon save of the triggering instrument, the RSP Participant Info form is automatically populated and saved.</div>",
+			"name": "<div class='alert alert-warning'>AUTO POPULATE RSP Participant Info Form<br>Upon save of the triggering instrument, the RSP Participant Info form is automatically populated and saved.</div>",
 			"required": false,
 			"type": "descriptive"
 		},
 		{
 			"key": "autocreate_rsp_participant_page",
-			"name": "<div class='alert alert-warning'><b>Auto-create the participant info page</b></div><br>Check here to autocreate the rsp_participant_info page for the record",
+			"name": "<span class='text-lg badge badge-lg badge-danger'><b>Auto-create the participant info page</b></span><br>Check here to autocreate the rsp_participant_info page for the record",
 			"required": false,
 			"type": "checkbox"
 		},
 		{
 			"key": "portal-config-name",
-			"name": "<b>Survey Portal EM Config Name</b><br>The Unique Config ID used for the  surveys in the Survey Portal EM (ex: daily)",
+			"name": "<span class='text-lg badge badge-lg badge-primary'><b>Survey Portal EM Config Name</b></span><br>The Unique Config ID used for the  surveys in the Survey Portal EM (ex: daily)",
 			"required": false,
 			"type": "text",
 			"default": "daily"
 		},
 		{
 			"key": "config-field",
-			"name": "<b>Config Field</b><br>This TEXT field that contains the Survey config id (i.e.daily, weekly, etc",
+			"name": "<span class='text-lg badge badge-lg badge-primary'><b>Config Field</b></span><br>This TEXT field that contains the Survey config id (i.e.daily, weekly, etc",
 			"required": false,
 			"type": "field-list"
+		},
+		{
+			"key": "participant-info-instrument",
+			"name": "<span class='text-lg badge badge-lg badge-primary'><b>Participant Information Instrument</b></span><br>The survey preference is in this form, update with newly selected option (default is both disabled).",
+			"required": false,
+			"type": "form-list"
+		},
+		{
+			"key": "survey-pref-field",
+			"name": "<span class='text-lg badge badge-lg badge-primary'><b>Survey Preference Field</b></span><BR>Field where survey preference is located) ",
+			"required": false,
+			"type": "field-list"
+		},
+		{
+			"key": "default-start-date",
+			"name": "<span class='text-lg badge badge-lg badge-primary'><b>Default date to enter for Survey Portal Start</b></span><br>Enter date to enter for all newly created records. Enter in the format 'Y-m-d'. Ex: '2020-03-15<br>Leave blank to enter 'today'",
+			"required": false,
+			"type": "text"
 		},
 		{
 			"key": "trigger-event-name",
@@ -79,13 +97,13 @@
 		},
 		{
 			"key": "triggering-instrument",
-			"name": "<b>Triggering Instrument</b><br>The redcap form that triggers auto-creation.  This form contains the the field defining the triggering logic entered below",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Triggering Instrument</span><br>The redcap form that triggers auto-creation.  This form contains the the field defining the triggering logic entered below",
 			"required": false,
 			"type": "form-list"
 		},
 		{
 			"key": "autocreate-rsp-participant-page-logic",
-			"name": "<div class='alert alert-warning'><b>Logic to trigger auto-create</b></div><br>Enter logic to trigger rsp_participant_info creation. For example, an email has been entered: [email_address_v2]<>''",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Logic to trigger auto-create</span><br>Enter logic to trigger rsp_participant_info creation. For example, an email has been entered: [email_address_v2]<>''",
 			"required": false,
 			"type": "text"
 		},
@@ -96,62 +114,38 @@
 			"type": "form-list"
 		},
 		{
-			"key": "participant-info-instrument",
-			"name": "<b>Participant Information Instrument</b><br>The survey preference is in this form, update with newly selected option (default is both disabled).",
-			"required": false,
-			"type": "form-list"
-		},
-		{
-			"key": "survey-pref-field",
-			"name": "<b>Survey Preference Field</b><BR>Field where survey preference is located) ",
-			"required": false,
-			"type": "field-list"
-		},
-		{
-			"key": "default-start-date",
-			"name": "<div class='alert alert-warning'><b>Default date to enter for Survey Portal Start</b></div><br>Enter date to enter for all newly created records. Enter in the format 'Y-m-d'. Ex: '2020-03-15<br>Leave blank to enter 'today'",
-			"required": false,
-			"type": "text"
-		},
-		{
 			"key": "email-field",
-			"name": "<b>Email Field</b><BR>Field where email is recorded for this participant (to be used for survey invtes/reminders) ",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Email Field</span><BR>Field where email is recorded for this participant (to be used for survey invtes/reminders) ",
 			"required": false,
 			"type": "field-list"
 		},
 		{
 			"key": "phone-field",
-			"name": "<b>Phone Field</b><br>Field where phone is recorded for this participant (to be used for survey invites/reminders) ",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Phone Field</span><br>Field where phone is recorded for this participant (to be used for survey invites/reminders) ",
 			"required": false,
 			"type": "field-list"
 		},
 		{
 			"key": "migration-field-desc",
-			"name": "<div class='alert alert-warning'><h4>Migration Fields </h4><br>These following fields are related to the migration.</div>",
+			"name": "<div class='alert alert-warning'><h4>Migration Fields </h4><br>These following fields are related to the migration and only used once for the migration.</div>",
 			"required": false,
 			"type": "descriptive"
 		},
 		{
 			"key": "main-event",
-			"name": "<b>Main Event</b><br>Enrollment / base event ",
+			"name": "<span class='text-lg badge badge-lg badge-secondary'><b>Main Event</b></span><br>Enrollment / base event ",
 			"required": false,
 			"type": "event-list"
 		},
 		{
 			"key": "diary-event",
-			"name": "<b>Repeating Diary Event</b><br>Repeating diary event ",
+			"name": "<span class='text-lg badge badge-lg badge-secondary'><b>MIGRATION: Repeating Diary Event</b></span><br>Repeating diary event ",
 			"required": false,
 			"type": "event-list"
 		},
 		{
-			"key": "orig-sig-event",
-			"name": "<b>Original Project Signature Event</b><br>Enter the event id of theo original project's signature event ",
-			"required": false,
-			"type": "text"
-		},
-		{
 			"key": "trigger-rsp-save",
-			"name": "<b>Trigger the RSP Participant Info page</b><br>Click checkbox to trigger the rsp_participant_info page (sets hash and sends portal invite) ",
+			"name": "<span class='text-lg badge badge-lg badge-secondary'><b>MIGRATION: Trigger the SAVE of the RSP Participant Info page</b></span><br>Click checkbox to trigger save of the rsp_participant_info page (sets hash and sends portal invite) ",
 			"required": false,
 			"type": "checkbox"
 		}
