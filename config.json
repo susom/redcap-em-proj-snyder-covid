@@ -91,7 +91,7 @@
 		},
 		{
 			"key": "trigger-event-name",
-			"name": "<b>Triggering Event Name</b><br>Name of event where triggering form is enabled.",
+			"name": "<span class='text-lg badge badge-lg badge-danger'><b>Triggering Event Name</b></span><br>Name of event where triggering form is enabled.",
 			"required": false,
 			"type": "event-list"
 		},
@@ -100,6 +100,24 @@
 			"name": "<span class='text-lg badge badge-lg badge-danger'>Triggering Instrument</span><br>The redcap form that triggers auto-creation.  This form contains the the field defining the triggering logic entered below",
 			"required": false,
 			"type": "form-list"
+		},
+		{
+			"key": "unsubscribe-instrument",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Unsubscribe Instrument</span><br>This form contains the the field selecting the unsubscribe option.",
+			"required": false,
+			"type": "form-list"
+		},
+		{
+			"key": "unsubscribe-field",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Unsubscribe Field</span><br>The field selecting the unsubscribe option.",
+			"required": false,
+			"type": "field-list"
+		},
+		{
+			"key": "withdraw-field",
+			"name": "<span class='text-lg badge badge-lg badge-danger'>Withdraw Field</span><br>The field selecting the withdraw option.",
+			"required": false,
+			"type": "field-list"
 		},
 		{
 			"key": "autocreate-rsp-participant-page-logic",

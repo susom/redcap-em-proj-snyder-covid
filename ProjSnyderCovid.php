@@ -1,6 +1,7 @@
 <?php
 namespace Stanford\ProjSnyderCovid;
 
+use Aws\Api\Parser\Exception\ParserException;
 use ExternalModules\ExternalModules;
 use \REDCap;
 use DateTime;
@@ -40,6 +41,16 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $config_event = $this->getProjectSetting('trigger-event-name', $project_id);
         if (($instrument == $survey_pref_form) && ($event_id == $config_event)) {
             $this->setEmailSmsPreference($project_id, $record, $event_id);
+        }
+
+        //set up for unsubscribe
+        //if unsubscribe form is selected, make updates according to selection
+        //1:  disable both email and text
+        //2:  check withdrawn checkbox in the ADMIN form
+        //3:  check withdrawn checkbox in the ADMIN form
+        $unsubscribe_form = $this->getProjectSetting('unsubscribe-instrument', $project_id);
+        if (($instrument == $unsubscribe_form) && ($event_id == $config_event)) {
+            $this->setUnsubscribePreference($project_id, $record, $event_id);
         }
 
     }
@@ -341,8 +352,34 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
 
     /*******************************************************************************************************************/
-    /* AUTOCREATE METHODS                                                                                              */
+    /* AUTOCREATE AND AUTOSET METHODS                                                                                              */
     /***************************************************************************************************************** */
+
+    function setUnsubscribePreference($project_id, $record, $event_id) {
+        //check the unsubscribe field
+        //1:  disable both email and text
+        //2:  check withdrawn checkbox in the ADMIN form
+        //3:  check withdrawn checkbox in the ADMIN form
+
+        $unsubscribe_field = $this->getProjectSetting('unsubscribe-field', $project_id);
+        $withdraw_field = $this->getProjectSetting('withdraw-field', $project_id);
+
+        $unsubscribe_value = $this->getFieldValue($project_id, $record, $event_id,  $unsubscribe_field);
+
+        switch ($unsubscribe_value)
+        {
+            case 1:
+                $this->checkCheckbox($project_id, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email'), true);
+                //$this->turnOffSurveyInvites($project_id, $record, $event_id);
+                break;
+            case 2:
+            case 3:
+                //check the withdrawn checkbox field in the ADMIN form
+                $this->checkCheckbox($project_id, $record, $event_id, array($withdraw_field));
+                break;
+        }
+
+    }
 
     /**
      * Once the participant_information form is filled out, get the survey_preference and update
@@ -353,7 +390,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
      * @param $event_id
      */
     function setEmailSmsPreference($project_id, $record, $event_id) {
-        $survey_pref_field =$this->getProjectSetting('survey-pref-field', $project_id);
+        $survey_pref_field = $this->getProjectSetting('survey-pref-field', $project_id);
         $params = array(
             'project_id' => $project_id,
             'return_format' => 'array',
@@ -582,6 +619,51 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     /*  METHODS                                                                                                        */
     /***************************************************************************************************************** */
 
+    function getFieldValue($project_id, $record, $event_id,  $get_field) {
+        $params = array(
+            'project_id' => $project_id,
+            'return_format' => 'array',
+            'records' => $record,
+            'fields' => array($get_field),
+            'events' => $event_id
+        );
+
+        $q = REDCap::getData($params);
+        //$results = json_decode($q, true);
+        //$entered_data = current($results);
+
+        //return the field
+        return $q[$record][$event_id][$get_field];
+
+
+    }
+
+
+    function checkCheckbox($project_id, $record, $event_id, $checkbox_field, $repeating = false) {
+        //set the checkbox in the form
+        $event_name = REDCap::getEventNames(true, false, $event_id);
+
+        $checkboxes = array();
+
+        foreach ($checkbox_field as $k => $v) {
+            $checkboxes[$v."___1"] = 1;
+        }
+
+        $save_data = array(
+            'record_id'         => $record,
+            'redcap_event_name' => $event_name,
+        );
+
+        $save_data = array_replace($save_data, $checkboxes, $repeating ? array("redcap_repeat_instance"=>1) : array());
+
+        $status = REDCap::saveData('json', json_encode(array($save_data)));
+
+
+        if (!empty($status['errors'])) {
+            $this->emDebug("Error trying to save this data",$save_data,  $status['errors']);
+        }
+
+    }
 
     function saveForm($project_id, $record_id, $event_id, $data_array, $instrument,$repeat_instance)
     {
