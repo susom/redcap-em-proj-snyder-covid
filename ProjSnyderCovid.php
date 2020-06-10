@@ -76,7 +76,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
             'instruments' => array('consent_form_2', 'participant_information', 'medical_history', 'first_check_in',
                 'daily_checkin_email', 'daily_checkin_sms')
         );
-        $dd = REDCap::getDataDictionary($origin_pid, 'array', false, false, $instruments);
+        $dd = REDCap::getDataDictionary($origin_pid, 'array', false, false); //, $instruments);
         $field_list = array_keys($dd);
         $field_complete = array('consent_form_2_complete', 'participant_information_complete', 'medical_history_complete',
             'first_check_in_complete', 'daily_checkin_email_complete', 'daily_checkin_sms_complete');
@@ -355,7 +355,8 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     /* AUTOCREATE AND AUTOSET METHODS                                                                                              */
     /***************************************************************************************************************** */
 
-    function setUnsubscribePreference($project_id, $record, $event_id) {
+    function setUnsubscribePreference($project_id, $record, $event_id)
+    {
         //check the unsubscribe field
         //1:  disable both email and text
         //2:  check withdrawn checkbox in the ADMIN form
@@ -364,22 +365,37 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $unsubscribe_field = $this->getProjectSetting('unsubscribe-field', $project_id);
         $withdraw_field = $this->getProjectSetting('withdraw-field', $project_id);
 
-        $unsubscribe_value = $this->getFieldValue($project_id, $record, $event_id,  $unsubscribe_field);
+        $unsubscribe_value = $this->getFieldValue($project_id, $record, $event_id, $unsubscribe_field);
 
-        switch ($unsubscribe_value)
-        {
+        $log_msg = "";
+
+        switch ($unsubscribe_value) {
             case 1:
                 $this->checkCheckbox($project_id, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email'), true);
+                $log_msg = "Unsubscribe request received: text and email disabled for participant.";
                 //$this->turnOffSurveyInvites($project_id, $record, $event_id);
                 break;
             case 2:
             case 3:
                 //check the withdrawn checkbox field in the ADMIN form
                 $this->checkCheckbox($project_id, $record, $event_id, array($withdraw_field));
+                $log_msg = "Unsubscribe request received: withdrawn checked for participant.";
                 break;
         }
 
+        //log event
+        //add entry into redcap logging about saved form
+        REDCap::logEvent(
+            "Unsubscribe request updated by Snyder Covid EM",  //action
+            $log_msg,  //change msg
+            NULL, //sql optional
+            $record, //record optional
+            $event_id, //event optional
+            $project_id //project ID optional
+        );
+
     }
+
 
     /**
      * Once the participant_information form is filled out, get the survey_preference and update
