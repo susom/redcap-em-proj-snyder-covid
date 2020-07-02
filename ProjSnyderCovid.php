@@ -377,9 +377,12 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
                 break;
             case 2:
             case 3:
+                //TODO: there is a bug where saveData does not trigger recalc. In the meantime, just disable both email and texts
+                $this->checkCheckbox($project_id, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email', 'rsp_prt_disable_portal'), true);
+
                 //check the withdrawn checkbox field in the ADMIN form
                 $this->checkCheckbox($project_id, $record, $event_id, array($withdraw_field));
-                $log_msg = "Unsubscribe request received: withdrawn checked for participant.";
+                $log_msg = "Unsubscribe request received: withdrawn checked for participant. Email and text disabled.";
                 break;
         }
 
