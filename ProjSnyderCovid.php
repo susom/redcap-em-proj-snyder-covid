@@ -365,23 +365,25 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $unsubscribe_field = $this->getProjectSetting('unsubscribe-field', $project_id);
         $withdraw_field = $this->getProjectSetting('withdraw-field', $project_id);
 
+        $participant_form = $this->getProjectSetting('target-instrument', $project_id);
+
         $unsubscribe_value = $this->getFieldValue($project_id, $record, $event_id, $unsubscribe_field);
 
         $log_msg = "";
 
         switch ($unsubscribe_value) {
             case 1:
-                $this->checkCheckbox($project_id, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email'), true);
+                $this->checkCheckbox($project_id,$participant_form, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email'), true);
                 $log_msg = "Unsubscribe request received: text and email disabled for participant.";
                 //$this->turnOffSurveyInvites($project_id, $record, $event_id);
                 break;
             case 2:
             case 3:
                 //TODO: there is a bug where saveData does not trigger recalc. In the meantime, just disable both email and texts
-                $this->checkCheckbox($project_id, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email', 'rsp_prt_disable_portal'), true);
+                $this->checkCheckbox($project_id,$participant_form, $record, $event_id, array('rsp_prt_disable_sms', 'rsp_prt_disable_email', 'rsp_prt_disable_portal'), true);
 
                 //check the withdrawn checkbox field in the ADMIN form
-                $this->checkCheckbox($project_id, $record, $event_id, array($withdraw_field));
+                $this->checkCheckbox($project_id, $participant_form,$record, $event_id, array($withdraw_field));
                 $log_msg = "Unsubscribe request received: withdrawn checked for participant. Email and text disabled.";
                 break;
         }
@@ -658,7 +660,7 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
     }
 
 
-    function checkCheckbox($project_id, $record, $event_id, $checkbox_field, $repeating = false) {
+    function checkCheckbox($project_id, $instrument, $record, $event_id, $checkbox_field, $repeating = false) {
         //set the checkbox in the form
         $event_name = REDCap::getEventNames(true, false, $event_id);
 
@@ -673,7 +675,17 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
             'redcap_event_name' => $event_name,
         );
 
-        $save_data = array_replace($save_data, $checkboxes, $repeating ? array("redcap_repeat_instance"=>1) : array());
+        if ($repeating) {
+            $repeat_array = array(
+                "redcap_repeat_instance" => 1,
+                "redcap_repeat_instrument" => $instrument
+            );
+        } else {
+            $repeat_array = array();
+        }
+
+        //$save_data = array_replace($save_data, $checkboxes, $repeating ? array("redcap_repeat_instance"=>1) : array());
+        $save_data = array_replace($save_data, $checkboxes, $repeat_array);
 
         $status = REDCap::saveData('json', json_encode(array($save_data)));
 
