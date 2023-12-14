@@ -316,9 +316,12 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
 
             if (!empty($doc_id)) {
 
+                $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($from_project_id) : "redcap_data";
+
                 //check if already exists;
-                $check_sql = sprintf("select count(*) from redcap_data where project_id = '%s' and " .
+                $check_sql = sprintf("select count(*) from %s where project_id = '%s' and " .
                                      "event_id = '%s' and record = '%s' and field_name = '%s'",
+                                     prep($data_table),
                                      prep($from_project_id),
                                      prep($final_event),
                                      prep($record),
@@ -343,7 +346,8 @@ class ProjSnyderCovid extends \ExternalModules\AbstractExternalModule
         $value_str = implode(',', $values);
 
         if (!empty($values)) {
-            $insert_sql = "INSERT INTO redcap_data (project_id, event_id,record,field_name,value) VALUES  " . $value_str . ';';
+            $data_table = method_exists('\REDCap', 'getDataTable') ? \REDCap::getDataTable($to_project_id) : "redcap_data";
+            $insert_sql = "INSERT INTO $data_table (project_id, event_id,record,field_name,value) VALUES  " . $value_str . ';';
             $sig_status = db_query($insert_sql);
         }
 
